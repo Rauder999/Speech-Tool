@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluent — Speech Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a; --surface: #111111; --surface2: #1a1a1a;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0; --text2: #888; --text3: #555;
+    --accent: #e8ff5a; --accent-dim: rgba(232,255,90,0.1);
+    --red: #ff5a5a; --radius: 14px; --radius-sm: 8px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 0 1.5rem 4rem; }
+  header { width: 100%; max-width: 560px; padding: 2.5rem 0 2rem; display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--border); margin-bottom: 3rem; }
+  .logo { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--accent); letter-spacing: 0.04em; }
+  .logo-sub { font-size: 13px; color: var(--text3); }
+  .header-key { margin-left: auto; font-size: 12px; color: var(--text3); cursor: pointer; transition: color 0.15s; }
+  .header-key:hover { color: var(--text2); }
+  main { width: 100%; max-width: 560px; }
+  .phase { display: none; }
+  .phase.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 10px; }
+  .field { margin-bottom: 1.75rem; }
+  input[type="text"], input[type="password"] { width: 100%; padding: 13px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none; transition: border-color 0.15s; }
+  input[type="text"]:focus, input[type="password"]:focus { border-color: var(--border2); }
+  input::placeholder { color: var(--text3); }
+  .dur-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .dur-btn { padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+  .dur-btn:hover { border-color: var(--border2); color: var(--text); }
+  .dur-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .btn-primary { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: var(--radius-sm); color: #0a0a0a; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s, transform 0.1s; margin-top: 0.5rem; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-secondary { width: 100%; padding: 13px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: border-color 0.15s, color 0.15s; margin-top: 10px; }
+  .btn-secondary:hover { border-color: var(--border2); color: var(--text); }
+  .status-msg { font-size: 13px; color: var(--text3); text-align: center; margin-top: 12px; min-height: 20px; }
+  .word-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; margin-bottom: 1.5rem; }
+  .word-small { font-size: 12px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  .word-big { font-size: clamp(42px, 10vw, 64px); font-weight: 300; color: var(--text); letter-spacing: -0.02em; margin-bottom: 12px; }
+  .word-dur { font-size: 13px; color: var(--text3); }
+  .rec-header { text-align: center; margin-bottom: 2.5rem; }
+  .rec-word-label { font-size: 12px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .rec-word-text { font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; }
+  .timer-wrap { display: flex; justify-content: center; margin-bottom: 2rem; }
+  .timer-ring-wrap { position: relative; width: 140px; height: 140px; }
+  .timer-svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+  .timer-inner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+  .timer-num { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 400; color: var(--text); }
+  .timer-lbl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .rec-indicator { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 2.5rem; }
+  .rec-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .rec-lbl { font-size: 13px; color: var(--text3); }
+  .proc-wrap { text-align: center; padding: 5rem 0; }
+  .proc-spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.5rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .proc-msg { font-size: 14px; color: var(--text2); }
+  .transcript-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin-bottom: 2rem; }
+  .transcript-label { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .transcript-text { font-size: 14px; color: var(--text2); line-height: 1.7; }
+  .feedback-body { margin-bottom: 2rem; }
+  .fb-section { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .fb-section:last-child { border-bottom: none; }
+  .fb-label { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+  .fb-content { font-size: 14px; color: var(--text2); line-height: 1.75; }
+  .score-line { font-size: 36px; font-family: 'DM Mono', monospace; color: var(--text); margin-bottom: 4px; }
+  .score-sub { font-size: 14px; color: var(--text2); }
+  a { color: var(--accent); text-decoration: none; }
+  @media (max-width: 480px) { body { padding: 0 1rem 3rem; } .word-big { font-size: 38px; } }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">fluent</span>
+  <span class="logo-sub">/ impromptu speech trainer</span>
+  <span class="header-key" onclick="show('phase-apikey')">API key</span>
+</header>
+<main>
+
+  <div class="phase active" id="phase-apikey">
+    <div class="field">
+      <div class="section-label">OpenAI API key</div>
+      <input type="password" id="key-input" placeholder="sk-proj-..." style="font-family:'DM Mono',monospace;font-size:13px;" />
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:1.5rem;line-height:1.7;">
+      Get your key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>.<br>
+      You need a credit balance — $5 is enough for hundreds of sessions.<br>
+      Your key is saved only in your browser, never shared.
+    </p>
+    <button class="btn-primary" onclick="saveKey()">Save and continue</button>
+    <div class="status-msg" id="key-status"></div>
+  </div>
+
+  <div class="phase" id="phase-home">
+    <div class="field">
+      <div class="section-label">Topic (optional)</div>
+      <input type="text" id="cat-input" placeholder="sales, leadership, technology..." />
+    </div>
+    <div class="field">
+      <div class="section-label">Language</div>
+      <select id="lang-select" style="width:100%;padding:13px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path d=%22M1 1l5 5 5-5%22 stroke=%22%23555%22 stroke-width=%221.5%22 fill=%22none%22/></svg>');background-repeat:no-repeat;background-position:right 14px center;">
+        <option value="">Auto-detect</option>
+        <option value="af">Afrikaans</option>
+        <option value="ar">Arabic</option>
+        <option value="hy">Armenian</option>
+        <option value="az">Azerbaijani</option>
+        <option value="be">Belarusian</option>
+        <option value="bs">Bosnian</option>
+        <option value="bg">Bulgarian</option>
+        <option value="ca">Catalan</option>
+        <option value="zh">Chinese</option>
+        <option value="hr">Croatian</option>
+        <option value="cs">Czech</option>
+        <option value="da">Danish</option>
+        <option value="nl">Dutch</option>
+        <option value="en">English</option>
+        <option value="et">Estonian</option>
+        <option value="fi">Finnish</option>
+        <option value="fr">French</option>
+        <option value="gl">Galician</option>
+        <option value="de">German</option>
+        <option value="el">Greek</option>
+        <option value="he">Hebrew</option>
+        <option value="hi">Hindi</option>
+        <option value="hu">Hungarian</option>
+        <option value="is">Icelandic</option>
+        <option value="id">Indonesian</option>
+        <option value="it">Italian</option>
+        <option value="ja">Japanese</option>
+        <option value="kn">Kannada</option>
+        <option value="kk">Kazakh</option>
+        <option value="ko">Korean</option>
+        <option value="lv">Latvian</option>
+        <option value="lt">Lithuanian</option>
+        <option value="mk">Macedonian</option>
+        <option value="ms">Malay</option>
+        <option value="mr">Marathi</option>
+        <option value="mi">Maori</option>
+        <option value="ne">Nepali</option>
+        <option value="no">Norwegian</option>
+        <option value="fa">Persian</option>
+        <option value="pl">Polish</option>
+        <option value="pt">Portuguese</option>
+        <option value="ro">Romanian</option>
+        <option value="ru">Russian</option>
+        <option value="sr">Serbian</option>
+        <option value="sk">Slovak</option>
+        <option value="sl">Slovenian</option>
+        <option value="es">Spanish</option>
+        <option value="sw">Swahili</option>
+        <option value="sv">Swedish</option>
+        <option value="tl">Tagalog</option>
+        <option value="ta">Tamil</option>
+        <option value="th">Thai</option>
+        <option value="tr">Turkish</option>
+        <option value="uk">Ukrainian</option>
+        <option value="ur">Urdu</option>
+        <option value="vi">Vietnamese</option>
+        <option value="cy">Welsh</option>
+      </select>
+    </div>
+    <div class="field">
+      <div class="section-label">Duration</div>
+      <div class="dur-grid">
+        <button class="dur-btn" onclick="setDur(1)" id="dur-1">1 min</button>
+        <button class="dur-btn" onclick="setDur(2)" id="dur-2">2 min</button>
+        <button class="dur-btn active" onclick="setDur(3)" id="dur-3">3 min</button>
+        <button class="dur-btn" onclick="setDur(5)" id="dur-5">5 min</button>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="generateWord()">Generate word</button>
+    <div class="status-msg" id="home-status"></div>
+  </div>
+
+  <div class="phase" id="phase-ready">
+    <div class="word-card">
+      <div class="word-small">Your word</div>
+      <div class="word-big" id="word-display"></div>
+      <div class="word-dur" id="dur-display"></div>
+    </div>
+    <button class="btn-primary" onclick="startRecording()">Start recording</button>
+    <button class="btn-secondary" onclick="generateWord()">Generate new word</button>
+  </div>
+
+  <div class="phase" id="phase-recording">
+    <div class="rec-header">
+      <div class="rec-word-label">Talking about</div>
+      <div class="rec-word-text" id="rec-word"></div>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer-ring-wrap">
+        <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="5"/>
+          <circle id="timer-ring" cx="70" cy="70" r="58" fill="none" stroke="#e8ff5a" stroke-width="5" stroke-dasharray="364.4" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg>
+        <div class="timer-inner">
+          <div class="timer-num" id="timer-display">0:00</div>
+          <div class="timer-lbl">remaining</div>
+        </div>
+      </div>
+    </div>
+    <div class="rec-indicator">
+      <div class="rec-dot"></div>
+      <span class="rec-lbl">Recording</span>
+    </div>
+    <button class="btn-secondary" onclick="stopEarly()">Stop early</button>
+  </div>
+
+  <div class="phase" id="phase-processing">
+    <div class="proc-wrap">
+      <div class="proc-spinner"></div>
+      <div class="proc-msg" id="proc-msg">Processing...</div>
+    </div>
+  </div>
+
+  <div class="phase" id="phase-done">
+    <div class="transcript-box">
+      <div class="transcript-label">Transcript</div>
+      <div class="transcript-text" id="transcript-display"></div>
+    </div>
+    <div class="feedback-body" id="feedback-display"></div>
+    <button class="btn-primary" onclick="goHome()">Try again</button>
+  </div>
+
+</main>
+<script>
+let dur = 3, word = "", recorder = null, chunks = [], interval = null;
+
+function getLang() { return document.getElementById("lang-select") ? document.getElementById("lang-select").value : ""; }
+
+function getKey() { return localStorage.getItem("fluent_openai_key") || ""; }
+
+function saveKey() {
+  const val = document.getElementById("key-input").value.trim();
+  if (!val.startsWith("sk-")) { document.getElementById("key-status").textContent = "Key should start with sk-"; return; }
+  localStorage.setItem("fluent_openai_key", val);
+  show("phase-home");
+}
+
+function show(id) {
+  document.querySelectorAll(".phase").forEach(p => p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function setDur(n) {
+  dur = n;
+  document.querySelectorAll(".dur-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("dur-" + n).classList.add("active");
+}
+
+async function generateWord() {
+  const cat = document.getElementById("cat-input").value.trim();
+  const status = document.getElementById("home-status");
+  status.textContent = "Generating...";
+  try {
+    const prompt = cat
+      ? `Give me exactly one English word related to: "${cat}". Reply with only the word, nothing else.`
+      : `Give me exactly one interesting English word for an impromptu speech exercise. Not too common. Reply with only the word.`;
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() },
+      body: JSON.stringify({ model: "gpt-4o-mini", max_tokens: 10, messages: [{ role: "user", content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    word = data.choices[0].message.content.trim().replace(/[^a-zA-Z\-]/g, "");
+    document.getElementById("word-display").textContent = word;
+    document.getElementById("dur-display").textContent = dur + " minute" + (dur > 1 ? "s" : "");
+    status.textContent = "";
+    show("phase-ready");
+  } catch(e) { status.textContent = "Error: " + e.message; }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chunks = [];
+    const options = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? { mimeType: "audio/webm;codecs=opus" } : {};
+    recorder = new MediaRecorder(stream, options);
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => { stream.getTracks().forEach(t => t.stop()); processAudio(); };
+    recorder.start(500);
+    document.getElementById("rec-word").textContent = word;
+    const total = dur * 60;
+    let remaining = total;
+    updateTimer(remaining, total);
+    show("phase-recording");
+    interval = setInterval(() => {
+      remaining -= 1;
+      updateTimer(remaining, total);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        if (recorder.state !== "inactive") recorder.stop();
+        show("phase-processing");
+        document.getElementById("proc-msg").textContent = "Transcribing your speech...";
+      }
+    }, 1000);
+  } catch(e) { alert("Microphone access needed: " + e.message); }
+}
+
+function updateTimer(remaining, total) {
+  const m = Math.floor(remaining / 60), s = remaining % 60;
+  document.getElementById("timer-display").textContent = m + ":" + String(s).padStart(2, "0");
+  const circ = 2 * Math.PI * 58;
+  document.getElementById("timer-ring").style.strokeDashoffset = (circ * (1 - remaining / total)).toFixed(2);
+}
+
+function stopEarly() {
+  clearInterval(interval);
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  show("phase-processing");
+  document.getElementById("proc-msg").textContent = "Transcribing your speech...";
+}
+
+function goHome() { show("phase-home"); }
+
+async function processAudio() {
+  await new Promise(r => setTimeout(r, 400));
+  try {
+    const mimeType = recorder && recorder.mimeType ? recorder.mimeType : "audio/webm";
+    const blob = new Blob(chunks, { type: mimeType });
+    const ext = mimeType.includes("ogg") ? "ogg" : "webm";
+    const form = new FormData();
+    form.append("file", blob, "audio." + ext);
+    form.append("model", "whisper-1");
+    const lang = getLang();
+    if (lang) form.append("language", lang);
+    
+    const wRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + getKey() },
+      body: form
+    });
+    const wData = await wRes.json();
+    if (wData.error) throw new Error(wData.error.message);
+    const text = wData.text || "(no speech detected)";
+    document.getElementById("transcript-display").textContent = text;
+    document.getElementById("proc-msg").textContent = "Analyzing your speech...";
+    const fbRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        max_tokens: 900,
+        messages: [{
+          role: "user",
+          content: `You are an English speech coach. The student is practicing impromptu speaking to prepare for a B2B sales career. They spoke for up to ${dur} minute(s) about the word: "${word}".\n\nTranscript:\n"${text}"\n\nProvide feedback using EXACTLY these section headers on their own lines:\n\nSCORE\nFILLER WORDS\nGRAMMAR\nVOCABULARY\nSTRUCTURE\nFOCUS FOR NEXT TIME\n\nUnder SCORE: X/10 then one sentence impression.\nUnder FILLER WORDS: list each with approximate count.\nUnder GRAMMAR: specific mistakes with corrections, or "None found".\nUnder VOCABULARY: words to replace and better alternatives; 1-2 new words to adopt.\nUnder STRUCTURE: 2-3 sentences on flow and coherence.\nUnder FOCUS FOR NEXT TIME: one specific actionable thing.\n\nBe direct. Under 300 words total.`
+        }]
+      })
+    });
+    const fbData = await fbRes.json();
+    if (fbData.error) throw new Error(fbData.error.message);
+    renderFeedback(fbData.choices[0].message.content);
+    show("phase-done");
+  } catch(e) { document.getElementById("proc-msg").textContent = "Error: " + e.message; }
+}
+
+function renderFeedback(raw) {
+  const sections = ["SCORE","FILLER WORDS","GRAMMAR","VOCABULARY","STRUCTURE","FOCUS FOR NEXT TIME"];
+  const container = document.getElementById("feedback-display");
+  container.innerHTML = "";
+  const lines = raw.split("\n").map(l => l.trim()).filter(l => l);
+  let current = null, currentLines = [];
+  function flush() {
+    if (!current) return;
+    const sec = document.createElement("div"); sec.className = "fb-section";
+    const lbl = document.createElement("div"); lbl.className = "fb-label"; lbl.textContent = current; sec.appendChild(lbl);
+    const content = document.createElement("div"); content.className = "fb-content";
+    if (current === "SCORE") {
+      const scoreEl = document.createElement("div"); scoreEl.className = "score-line"; scoreEl.textContent = currentLines[0] || ""; content.appendChild(scoreEl);
+      const subEl = document.createElement("div"); subEl.className = "score-sub"; subEl.textContent = currentLines.slice(1).join(" "); content.appendChild(subEl);
+    } else { content.textContent = currentLines.join(" "); }
+    sec.appendChild(content); container.appendChild(sec);
+  }
+  lines.forEach(line => { if (sections.includes(line)) { flush(); current = line; currentLines = []; } else if (current) { currentLines.push(line); } });
+  flush();
+}
+
+window.addEventListener("DOMContentLoaded", () => { if (getKey()) show("phase-home"); });
+</script>
+</body>
+</html>
